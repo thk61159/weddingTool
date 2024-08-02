@@ -6,12 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
   })
   ws.onmessage = (event) => {
     const {displayName, message} = JSON.parse(event.data);
-    console.log(event.data)
-    createDanmaku({displayName, message})
+    createDanmaku(displayName, message)
 
   };
 
-  function createDanmaku({ userId, message }) {
+  function createDanmaku(displayName, message) {
     const danmaku = document.createElement('div');
     danmaku.className = 'danmaku';
     danmaku.style.top = `${Math.random() * 100}%`;
