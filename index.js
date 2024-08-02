@@ -7,6 +7,7 @@ const { Client, middleware, validateSignature } = require('@line/bot-sdk');
 const constants = require('./constant')
 const { randomize } = require('./helper')
 
+const client = new Client(constants.lineConfig);
 const app = express()
 const server = require('http').createServer(app);
 const wss = new WebSocketServer({ server });
@@ -18,9 +19,10 @@ app.use(express.static('public'));
 let messages = [];
 
 app.post('/webhook', middleware(constants.lineConfig), validateLineSignature, (req, res) => {
-  const client = new Client(constants.lineConfig);
   Promise
-    .all(req.body.events.map(handleEvent, client, wss))
+    .all(req.body.events.map(async (e) => {
+      handleEvent(e)
+    }))
     .then((result) =>
       res.json(result))
     .catch((err) => {
@@ -53,7 +55,9 @@ server.listen(PORT, () => {
 
 wss.on('connection', (ws) => {
   console.log('Client connected \n',);
-
+  messages.forEach(e => {
+    client.send(JSON.stringify(e))
+  })
   ws.on('close', () => {
     console.log('Client disconnected');
   });
@@ -68,17 +72,17 @@ function validateLineSignature(req, res, next) {
   }
   next()
 }
-function handleEvent(event,client, wss) {
+async function handleEvent(event) {
   if (event.type === 'message') {
-    handleMessage(event,client, wss)
+    await handleMessage(event)
   } else if (event.type === 'postback') {
-    return handlePostback(event,client);
+    return handlePostback(event);
   } else {
     return Promise.resolve(null);
   }
 }
 
-function handlePostback(event,client) {
+function handlePostback(event) {
   const data = event.postback.data;
 
   if (data.startsWith('action=send_invitation')) {
@@ -90,13 +94,16 @@ function handlePostback(event,client) {
   }
   return Promise.resolve(null);
 }
-function handleMessage(event,client, wss=undefined) {
+
+async function handleMessage(event) {
   if (event.message.text == '謝謝誇獎!') return
   const userId = event.source.userId;
+  const profile = await client.getProfile(userId);
+  const displayName = profile.displayName;
   const message = event.message.text;
-  messages.push({ userId, message });
-  const reply = { type: 'text', text: userId + '收到!' };
-  wss && broadcastMessage({ userId, message });
+  messages.push({ displayName, message });
+  const reply = { type: 'text', text: displayName + '收到!' };
+  broadcastMessage({ displayName, message });
   return client.replyMessage(event.replyToken, reply);
 }
 function broadcastMessage(message) {
