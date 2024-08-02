@@ -1,3 +1,4 @@
 ngrok-v3-stable-windows-amd64/
 img/
 node_modules/
+.env
