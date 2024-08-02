@@ -62,7 +62,7 @@ wss.on('connection', (ws) => {
 function validateLineSignature(req, res, next) {
   const str = JSON.stringify(req.body)
   const signature = req.get('X-Line-Signature');
-  if (!signature || !validateSignature(str, config.channelSecret, signature)) {
+  if (!signature || !validateSignature(str, constants.lineConfig.channelSecret, signature)) {
     console.error('Signature validation failed');
     return res.status(403).send('Forbidden');
   }
