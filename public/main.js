@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const danmakuContainer = document.getElementById('danmaku-container');
-  const ws = new WebSocket('ws://localhost:3000');
+  const ws = new WebSocket(`wss:${document.URL.split(':')[1]}`);
+
+  // const ws = new WebSocket('wss://weddingtool.onrender.com');
+  //
   // const ws = new WebSocket('wss://eab2-60-251-200-67.ngrok-free.app');
   ws.addEventListener('open', () => {
    console.log('ws conn')
