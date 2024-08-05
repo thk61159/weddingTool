@@ -56,7 +56,7 @@ server.listen(PORT, () => {
 wss.on('connection', (ws) => {
   console.log('Client connected \n',);
   messages.forEach(e => {
-    client.send(JSON.stringify(e))
+    ws.send(JSON.stringify(e))
   })
   ws.on('close', () => {
     console.log('Client disconnected');
@@ -84,6 +84,7 @@ async function handleEvent(event) {
 
 function handlePostback(event) {
   const data = event.postback.data;
+  console.log(data.startsWith('action=send_invitation'))
 
   if (data.startsWith('action=send_invitation')) {
     return client.replyMessage(event.replyToken, {
@@ -92,15 +93,28 @@ function handlePostback(event) {
       previewImageUrl: constants.invitationUrl
     });
   }
+  if (data.startsWith('action=donate')) {
+    return client.replyMessage(event.replyToken, { type: 'text', text: '點擊以下連結開啟LinePay\nhttps://line.me/R/ch/1586237320/?forwardPath=/c2c/transfer&no=21470785060' })
+    // return client.replyMessage(event.replyToken, {
+    //   type: 'image',
+    //   originalContentUrl: constants.donateUrl,
+    //   previewImageUrl: constants.donateUrl
+    // });
+  }
   return Promise.resolve(null);
 }
 
 async function handleMessage(event) {
-  if (event.message.text == '謝謝誇獎!') return
+
   const userId = event.source.userId;
   const profile = await client.getProfile(userId);
   const displayName = profile.displayName;
   const message = event.message.text;
+  if(message==='請求聯絡資訊'){
+    const msg = 'Email: a31735@gmail.com\nLinkedin: https://www.linkedin.com/in/kuo-ting-han-3b045ab5/'
+    return client.replyMessage(event.replyToken, { type: 'text', text: msg });
+  }
+  console.log(event.message )
   messages.push({ displayName, message });
   const reply = { type: 'text', text: displayName + '收到!' };
   broadcastMessage({ displayName, message });
