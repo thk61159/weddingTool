@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
    console.log('ws conn')
   })
   ws.onmessage = (event) => {
+    console.log(event.data)
     const {displayName, message} = JSON.parse(event.data);
     createDanmaku(displayName, message)
 

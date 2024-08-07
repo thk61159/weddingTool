@@ -5,18 +5,22 @@ const express = require('express')
 const { WebSocketServer } = require('ws');
 const { Client, middleware, validateSignature } = require('@line/bot-sdk');
 const constants = require('./constant')
-const { randomize } = require('./helper')
+const { randomize, mongoDBConn, MsgModel, waitForAsync } = require('./helper')
 
 const client = new Client(constants.lineConfig);
 const app = express()
 const server = require('http').createServer(app);
 const wss = new WebSocketServer({ server });
+const dbConn = mongoDBConn()
 
 app.use(express.urlencoded({ extended: true }))
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
-let messages = [];
+let init = false
+
+let messages = []
+
 
 app.post('/webhook', middleware(constants.lineConfig), validateLineSignature, (req, res) => {
   Promise
@@ -44,7 +48,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/photos', (req, res) => {
-  let photos = fs.readFileSync(path.join(__dirname, 'public', 'photos.json'))
+  const photos = fs.readFileSync(path.join(__dirname, 'public', 'photos.json'))
   res.json(JSON.parse(photos));
 });
 const PORT = process.env.PORT || 3000;
@@ -53,9 +57,11 @@ server.listen(PORT, () => {
 });
 
 
-wss.on('connection', (ws) => {
+wss.on('connection', async (ws) => {
   console.log('Client connected \n',);
-  messages.forEach(e => {
+  const dbMsg = init ? [] : await MsgModel.getCollection().find().lean().finally(() => { init = true })
+  messages = [...dbMsg,...messages]
+  messages.reverse().forEach(e => {
     ws.send(JSON.stringify(e))
   })
   ws.on('close', () => {
@@ -84,8 +90,6 @@ async function handleEvent(event) {
 
 function handlePostback(event) {
   const data = event.postback.data;
-  console.log(data.startsWith('action=send_invitation'))
-
   if (data.startsWith('action=send_invitation')) {
     return client.replyMessage(event.replyToken, {
       type: 'image',
@@ -93,13 +97,14 @@ function handlePostback(event) {
       previewImageUrl: constants.invitationUrl
     });
   }
-  if (data.startsWith('action=donate')) {
-    return client.replyMessage(event.replyToken, { type: 'text', text: '點擊以下連結開啟LinePay\nhttps://line.me/R/ch/1586237320/?forwardPath=/c2c/transfer&no=21470785060' })
-    // return client.replyMessage(event.replyToken, {
-    //   type: 'image',
-    //   originalContentUrl: constants.donateUrl,
-    //   previewImageUrl: constants.donateUrl
-    // });
+  if (data.startsWith('action=random_photo')) {
+    const photos = fs.readFileSync(path.join(__dirname, 'public', 'photos.json'))
+    const photos_obj = JSON.parse(photos)
+    return client.replyMessage(event.replyToken, {
+      type: 'image',
+      originalContentUrl: photos_obj[Math.floor(Math.random() * photos_obj.length)]['url'],
+      previewImageUrl: constants.donateUrl
+    });
   }
   return Promise.resolve(null);
 }
@@ -110,14 +115,16 @@ async function handleMessage(event) {
   const profile = await client.getProfile(userId);
   const displayName = profile.displayName;
   const message = event.message.text;
-  if(message==='請求聯絡資訊'){
-    const msg = 'Email: a31735@gmail.com\nLinkedin: https://www.linkedin.com/in/kuo-ting-han-3b045ab5/'
+  const msgCollection = MsgModel.getCollection()
+  if (message === '請求聯絡資訊') {
+    const msg = '開發者:\n前端: 許凱閔\n後端: 郭亭函\nEmail: a31735@gmail.com'
     return client.replyMessage(event.replyToken, { type: 'text', text: msg });
   }
-  console.log(event.message )
-  messages.push({ displayName, message });
-  const reply = { type: 'text', text: displayName + '收到!' };
-  broadcastMessage({ displayName, message });
+  const { timeStamp } = await msgCollection.create({ displayName, message })
+
+  messages.push({ displayName, message, timeStamp });
+  broadcastMessage({ displayName, message, timeStamp });
+  const reply = { type: 'text', text: displayName + '收到您的祝福!' };
   return client.replyMessage(event.replyToken, reply);
 }
 function broadcastMessage(message) {
