@@ -100,10 +100,11 @@ function handlePostback(event) {
   if (data.startsWith('action=random_photo')) {
     const photos = fs.readFileSync(path.join(__dirname, 'public', 'photos.json'))
     const photos_obj = JSON.parse(photos)
+    const randomUrl = photos_obj[Math.floor(Math.random() * photos_obj.length)]['url']
     return client.replyMessage(event.replyToken, {
       type: 'image',
-      originalContentUrl: photos_obj[Math.floor(Math.random() * photos_obj.length)]['url'],
-      previewImageUrl: constants.donateUrl
+      originalContentUrl: randomUrl,
+      previewImageUrl: randomUrl
     });
   }
   return Promise.resolve(null);
@@ -120,8 +121,8 @@ async function handleMessage(event) {
     const msg = '開發者:\n前端: 許凱閔\n後端: 郭亭函\nEmail: a31735@gmail.com'
     return client.replyMessage(event.replyToken, { type: 'text', text: msg });
   }
+  if (message.length > 20) return client.replyMessage(event.replyToken, { type: 'text', text: '祝福太長拉畫面無法承受' });
   const { timeStamp } = await msgCollection.create({ displayName, message })
-
   messages.push({ displayName, message, timeStamp });
   broadcastMessage({ displayName, message, timeStamp });
   const reply = { type: 'text', text: displayName + '收到您的祝福!' };
