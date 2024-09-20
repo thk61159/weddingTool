@@ -11,19 +11,18 @@ This is the backend of a wedding interaction application. With this application,
 - 使用 Line Bot 傳送祝福語言。
 - 支援 HTTPS 和 IP 來接收 Line Bot 的 Webhook 訊息。
 - 部署於 Render.com。
-- 使用 MQTT Broker 以 publish/subscribe 方式傳遞訊息。
+- 使用 websocket 交換訊息。
 - 支援 localhost 接收和控制 Line Bot 的回傳訊息。
 
 - Send congratulatory messages via Line Bot.
 - Support for HTTPS and IP to receive webhook messages from Line Bot.
 - Deployed on Render.com.
-- Use MQTT Broker for publish/subscribe message passing.
+- Use websocket for message passing.
 - Support for localhost to receive and control Line Bot responses via publish/subscribe.
 
 ## 系統需求 / System Requirements
 
 - Node.js
-- MQTT Broker
 - Line Developer Account
 - Render.com Account
 
